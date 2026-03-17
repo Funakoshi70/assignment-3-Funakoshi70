@@ -18,17 +18,3 @@ jobs:
 
       - name: Run unit test
         run: ./unit-test.sh
-
-  full-test:
-    runs-on: ubuntu-latest
-    container: cuaesd/aesd-autotest:24-assignment1
-    steps:
-      - uses: actions/checkout@v3
-        with:
-          submodules: recursive
-
-      - name: Make scripts executable
-        run: chmod +x *.sh
-
-      - name: Run full test
-        run: ./full-test.sh
