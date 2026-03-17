@@ -68,12 +68,12 @@ bool do_exec(int count, ...)
     va_end(args);
     
     pid_t pid =fork();
-    char **argv= (char **)(command+1);
+    // char **argv= (char **)(command+1);
 
     if (pid <0)
     return false;
     
-    int re = execv(command[0],argv);
+    int re = execv(command[0],(command+1));
 
     int wstatus =0;
     waitpid(pid,&wstatus,0);
