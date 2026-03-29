@@ -91,6 +91,10 @@ ${CROSS_COMPILE}readelf -a busybox | grep "program interpreter"
 ${CROSS_COMPILE}readelf -a busybox | grep "Shared library"
 
 # TODO: Add library dependencies to rootfs
+cp -d $(find . -name "ld-linux-aarch64.so.1") ${OUTDIR}/rootfs/lib64
+cp -d $(find . -name "libc.so.6") ${OUTDIR}/rootfs/lib64
+cp -d $(find . -name "libresolv.so.2") ${OUTDIR}/rootfs/lib64
+cp -d $(find . -name "libm.so.6") ${OUTDIR}/rootfs/lib64
 
 # TODO: Make device nodes
 cd ${OUTDIR}/rootfs
