@@ -35,6 +35,20 @@ if [ ! -e ${OUTDIR}/linux-stable/arch/${ARCH}/boot/Image ]; then
     git checkout ${KERNEL_VERSION}
 
     # TODO: Add your kernel build steps here
+    echo "Clean the kernel build tree"
+    make ARCH=arm64 CROSS_COMPILE=aarch64-none-linux-gnu- mrproper
+
+    echo "QEMU build - defconfig"
+    make ARCH=arm64 CROSS_COMPILE=aarch64-none-linux-gnu- defconfig
+
+    echo "build a kernel image with QEMU"
+    make -j4 ARCH=arm64 CROSS_COMPILE=aarch64-none-linux-gnu- all
+
+    # echo "build Modules"
+    # make -j4 ARCH=arm64 CROSS_COMPILE=aarch64-none-linux-gnu- modules
+
+    echo "build Device tree" 
+    make -j4 ARCH=arm64 CROSS_COMPILE=aarch64-none-linux-gnu- dtbs
 fi
 
 echo "Adding the Image in outdir"
@@ -48,6 +62,11 @@ then
 fi
 
 # TODO: Create necessary base directories
+mkdir ${OUTDIR}/rootfs
+cd ${OUTDIR}/rootfs
+mkdir bin dev etc home lib lib64 proc sbin sys tmp usr var
+mkdir usr/bin usr/lib usr/sbin
+mkdir var/log
 
 cd "$OUTDIR"
 if [ ! -d "${OUTDIR}/busybox" ]
@@ -56,25 +75,48 @@ git clone git://busybox.net/busybox.git
     cd busybox
     git checkout ${BUSYBOX_VERSION}
     # TODO:  Configure busybox
+    make defconfig
 else
     cd busybox
+    make distclean
+    make defconfig
 fi
 
 # TODO: Make and install busybox
+make ARCH=${ARCH} CROSS_COMPILE=${CROSS_COMPILE}
+make CONFIG_PREFIX=${OUTDIR}/rootfs ARCH=${ARCH} CROSS_COMPILE=${CROSS_COMPILE} install
 
 echo "Library dependencies"
-${CROSS_COMPILE}readelf -a bin/busybox | grep "program interpreter"
-${CROSS_COMPILE}readelf -a bin/busybox | grep "Shared library"
+${CROSS_COMPILE}readelf -a busybox | grep "program interpreter"
+${CROSS_COMPILE}readelf -a busybox | grep "Shared library"
 
 # TODO: Add library dependencies to rootfs
 
 # TODO: Make device nodes
+cd ${OUTDIR}/rootfs
+sudo mknod -m 666 dev/null c 1 3    
 
 # TODO: Clean and build the writer utility
+echo "Cross-compiling writer.c with "${CROSS_COMPILE}"gcc"
+make clean
+make CROSS-COMPILE
+
 
 # TODO: Copy the finder related scripts and executables to the /home directory
 # on the target rootfs
+echo "Coppying files to /rootfs/home"
+homeRootfs=${OUTDIR}/rootfs/home
+
+cp ${FINDER_APP_DIR}/writer ${homeRootfs}
+cp ${FINDER_APP_DIR}/finder.sh ${homeRootfs}
+cp ${FINDER_APP_DIR}/finder-test.sh ${homeRootfs}
+cp ${FINDER_APP_DIR}/conf/assignment.txt ${homeRootfs}
+cp ${FINDER_APP_DIR}/conf/username.txt ${homeRootfs}
+cp ${FINDER_APP_DIR}/autorun-qemu.sh ${homeRootfs}
 
 # TODO: Chown the root directory
 
 # TODO: Create initramfs.cpio.gz
+cd ${OUTDIR}/rootfs
+find . | cpio -H newc -ov --owner root:root > ${OUTDIR}/initramfs.cpio
+gzip -f initramfs.cpio
