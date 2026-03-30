@@ -72,14 +72,14 @@ cd "$OUTDIR"
 if [ ! -d "${OUTDIR}/busybox" ]
 then
 git clone git://busybox.net/busybox.git
-    cd busybox
-    git checkout ${BUSYBOX_VERSION}
-    # TODO:  Configure busybox
-    make defconfig
+    # cd busybox
+    # git checkout ${BUSYBOX_VERSION}
+    # # TODO:  Configure busybox
+    # make defconfig
 else
     cd busybox
-    make distclean
-    make defconfig
+    # make distclean
+    # make defconfig
 fi
 
 # TODO: Make and install busybox
@@ -91,20 +91,21 @@ ${CROSS_COMPILE}readelf -a busybox | grep "program interpreter"
 ${CROSS_COMPILE}readelf -a busybox | grep "Shared library"
 
 # TODO: Add library dependencies to rootfs
-cp -d $(find . -name "ld-linux-aarch64.so.1") ${OUTDIR}/rootfs/lib64
-cp -d $(find . -name "libc.so.6") ${OUTDIR}/rootfs/lib64
-cp -d $(find . -name "libresolv.so.2") ${OUTDIR}/rootfs/lib64
-cp -d $(find . -name "libm.so.6") ${OUTDIR}/rootfs/lib64
+cp -f $(find ~/Documents -name "ld-linux-aarch64.so.1") ${OUTDIR}/rootfs/lib64/
+cp -f $(find ~/Documents -name "libc.so.6") ${OUTDIR}/rootfs/lib64/
+cp -f $(find ~/Documents -name "libresolv.so.2") ${OUTDIR}/rootfs/lib64/
+cp -f $(find ~/Documents -name "libm.so.6") ${OUTDIR}/rootfs/lib64/
 
 # TODO: Make device nodes
 cd ${OUTDIR}/rootfs
-sudo mknod -m 666 dev/null c 1 3    
+sudo mknod -m 666 dev/null c 1 3
+sudo mknod -m 600 dev/console c 5 1 
 
 # TODO: Clean and build the writer utility
 echo "Cross-compiling writer.c with "${CROSS_COMPILE}"gcc"
+cd ${FINDER_APP_DIR}
 make clean
 make CROSS-COMPILE
-
 
 # TODO: Copy the finder related scripts and executables to the /home directory
 # on the target rootfs
@@ -119,8 +120,10 @@ cp ${FINDER_APP_DIR}/conf/username.txt ${homeRootfs}
 cp ${FINDER_APP_DIR}/autorun-qemu.sh ${homeRootfs}
 
 # TODO: Chown the root directory
+cd ${OUTDIR}/rootfs
+sudo chown -R root:root *
 
 # TODO: Create initramfs.cpio.gz
 cd ${OUTDIR}/rootfs
 find . | cpio -H newc -ov --owner root:root > ${OUTDIR}/initramfs.cpio
-gzip -f initramfs.cpio
+gzip -f ${OUTDIR}/initramfs.cpio
