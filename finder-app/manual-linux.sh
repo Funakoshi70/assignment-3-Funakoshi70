@@ -45,7 +45,7 @@ if [ ! -e ${OUTDIR}/linux-stable/arch/${ARCH}/boot/Image ]; then
     make -j4 ARCH=arm64 CROSS_COMPILE=aarch64-none-linux-gnu- all
 
     # echo "build Modules"
-    # make -j4 ARCH=arm64 CROSS_COMPILE=aarch64-none-linux-gnu- modules
+    make -j4 ARCH=arm64 CROSS_COMPILE=aarch64-none-linux-gnu- modules
 
     echo "build Device tree" 
     make -j4 ARCH=arm64 CROSS_COMPILE=aarch64-none-linux-gnu- dtbs
@@ -72,19 +72,21 @@ cd "$OUTDIR"
 if [ ! -d "${OUTDIR}/busybox" ]
 then
 git clone git://busybox.net/busybox.git
-    # cd busybox
+    cd busybox
     # git checkout ${BUSYBOX_VERSION}
     # # TODO:  Configure busybox
-    # make defconfig
+    make distclean
+    make defconfig
 else
     cd busybox
-    # make distclean
-    # make defconfig
+    make distclean
+    make defconfig
 fi
 
 # TODO: Make and install busybox
 make ARCH=${ARCH} CROSS_COMPILE=${CROSS_COMPILE}
 make CONFIG_PREFIX=${OUTDIR}/rootfs ARCH=${ARCH} CROSS_COMPILE=${CROSS_COMPILE} install
+
 
 echo "Library dependencies"
 ${CROSS_COMPILE}readelf -a busybox | grep "program interpreter"
@@ -100,6 +102,8 @@ cp -f $(find ~/Documents -name "libm.so.6") ${OUTDIR}/rootfs/lib64/
 cd ${OUTDIR}/rootfs
 sudo mknod -m 666 dev/null c 1 3
 sudo mknod -m 600 dev/console c 5 1 
+ln -sf bin/busybox init
+chmod +x init bin/busybox
 
 # TODO: Clean and build the writer utility
 echo "Cross-compiling writer.c with "${CROSS_COMPILE}"gcc"
@@ -121,9 +125,11 @@ cp ${FINDER_APP_DIR}/autorun-qemu.sh ${homeRootfs}
 
 # TODO: Chown the root directory
 cd ${OUTDIR}/rootfs
+# ln -s bin/busybox init
 sudo chown -R root:root *
 
 # TODO: Create initramfs.cpio.gz
 cd ${OUTDIR}/rootfs
 find . | cpio -H newc -ov --owner root:root > ${OUTDIR}/initramfs.cpio
 gzip -f ${OUTDIR}/initramfs.cpio
+cp ${OUTDIR}/linux-stable/arch/${ARCH}/boot/Image ${OUTDIR}
